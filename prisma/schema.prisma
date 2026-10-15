@@ -1,0 +1,140 @@
+// Prisma schema — AS PRO
+// Base de données : PostgreSQL (adapter modifiable si besoin)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Auth.js (obligatoire pour next-auth + PrismaAdapter) ----------
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------- Utilisateurs & rôles ----------
+
+enum Role {
+  ADMIN
+  CLIENT
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  // Uniquement rempli pour les comptes créés par mot de passe (login classique).
+  // Reste vide pour les comptes créés via Google.
+  password      String?
+  role          Role      @default(CLIENT)
+
+  accounts Account[]
+  sessions Session[]
+
+  // Un utilisateur "client" peut être rattaché à une fiche Client
+  client Client?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------- Clients & historique des prestations ----------
+
+model Client {
+  id          String  @id @default(cuid())
+  companyName String
+  contactName String
+  email       String  @unique
+  phone       String?
+  address     String?
+
+  // Rattachement optionnel à un compte de connexion (Google ou mot de passe)
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  interventions Intervention[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum ServiceType {
+  BUREAUX
+  COMMERCES
+  INDUSTRIEL
+  ESPACES_COMMUNS
+  VITRES
+  DESINFECTION
+}
+
+enum InterventionStatus {
+  PLANIFIE
+  EN_COURS
+  TERMINE
+  ANNULE
+}
+
+model Intervention {
+  id       String              @id @default(cuid())
+  clientId String
+  client   Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  type      ServiceType
+  status    InterventionStatus @default(PLANIFIE)
+  date      DateTime
+  notes     String?            @db.Text
+  amount    Decimal?           @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------- Messages reçus via le formulaire de contact ----------
+
+model Message {
+  id      String  @id @default(cuid())
+  name    String
+  email   String
+  subject String
+  body    String  @db.Text
+  read    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+}

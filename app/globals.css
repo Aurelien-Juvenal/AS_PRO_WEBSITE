@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  color: #1a1a1a;
+}
+
+/* Identité visuelle AS PRO */
+.brand-green {
+  color: #22c55e;
+}
+
+.bg-brand-green {
+  background-color: #22c55e;
+}
+
+.bg-brand-green:hover {
+  background-color: #16a34a;
+}
+
+/* Translucide overlay pour la page login */
+.hero-overlay {
+  background: linear-gradient(
+    135deg,
+    rgba(6, 35, 18, 0.88),
+    rgba(12, 60, 30, 0.82)
+  );
+}
